@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marathon Pace Calculator — Split Times &amp; Race Pace Planner</title>
+  <meta name="description" content="Free marathon pace calculator. Convert finish time to pace, get 5K/mile split tables, half-marathon projections &amp; negative split plans for 26.2 mi / 42.195 km.">
+  <meta name="google-site-verification" content="uz_j2c_UOuyTXyW6W87egnN8gHCyfSqm3kyY_XEx62w" />
+  <meta name="theme-color" content="#EA580C">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --primary:#EA580C;--primary-dark:#C2410C;--primary-light:#FFEDD5;
+      --accent:#F97316;--ink:#7C2D12;--muted:#64748B;--line:#E2E8F0;
+      --bg:#FFF7ED;--card:#fff;--radius:16px;
+      --shadow:0 8px 32px rgba(234,88,12,.08);
+      --ok:#059669;--warn:#D97706;
+    }
+    body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:#1E293B;line-height:1.65;font-size:15px}
+    .container{max-width:1080px;margin:0 auto;padding:0 20px}
+    header{background:#fff;border-bottom:1px solid var(--line);padding:16px 0;position:sticky;top:0;z-index:10}
+    .logo{font-size:20px;font-weight:800;color:var(--primary);text-decoration:none}
+    .hero{padding:40px 0 24px;text-align:center;background:linear-gradient(165deg,#FFEDD5,#FED7AA 50%,#FFF7ED)}
+    .hero-badge{display:inline-block;background:var(--primary-light);color:var(--primary-dark);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:6px 14px;border-radius:999px;margin-bottom:12px}
+    .hero h1{font-size:clamp(26px,4vw,38px);font-weight:800;color:var(--ink);margin-bottom:8px}
+    .hero p{max-width:640px;margin:0 auto;color:var(--muted);font-size:15px}
+    .metrics{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:18px}
+    .metric-pill{padding:8px 14px;background:#fff;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:700;color:var(--ink)}
+    .metric-pill span{color:var(--primary)}
+    .layout{display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start;margin:28px 0}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:28px}
+    .card h2{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:4px}
+    .card .sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+    .sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary-dark);margin:18px 0 10px}
+    .sec-label:first-of-type{margin-top:0}
+    .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+    .form-grid.two{grid-template-columns:repeat(2,1fr)}
+    label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px}
+    .input,.select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:11px;font:inherit;font-size:14px;font-weight:600;background:#fff}
+    .input:focus,.select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+    .hint{font-size:12px;color:var(--muted);padding:11px 12px;background:#F8FAFC;border-radius:10px;border-left:3px solid var(--accent);margin-bottom:16px}
+    .unit-row,.mode-row,.goal-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .unit-btn,.mode-btn,.goal-btn{padding:10px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted)}
+    .goal-btn{border-radius:999px;padding:9px 14px}
+    .unit-btn.active,.mode-btn.active,.goal-btn.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark)}
+    .panel{display:none}
+    .panel.show{display:block}
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn-main{flex:1;min-width:140px;padding:14px 20px;background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;border:none;border-radius:11px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}
+    .btn-ghost{padding:14px 20px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted)}
+    .results{display:none;margin-top:24px;padding-top:22px;border-top:1px solid var(--line)}
+    .results.show{display:block}
+    .plan-preview{margin-top:24px;padding-top:22px;border-top:1px dashed var(--line)}
+    .plan-preview.hide{display:none}
+    .plan-preview h3{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:4px}
+    .plan-preview .pv-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+    .preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+    .preview-cell{background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px;padding:14px;text-align:center}
+    .preview-cell .k{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+    .preview-cell .v{font-size:14px;font-weight:800;color:#94A3B8}
+    .result-hero{text-align:center;color:#fff;border-radius:18px;padding:26px;margin-bottom:16px;background:linear-gradient(145deg,#F97316,#EA580C)}
+    .result-hero .lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;opacity:.92}
+    .result-hero .val{font-size:clamp(32px,7vw,52px);font-weight:900;margin:8px 0 4px}
+    .result-hero .sub{font-size:14px;opacity:.9}
+    .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+    .result-cell{background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+    .result-cell .k{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+    .result-cell .v{font-size:14px;font-weight:800;color:var(--primary-dark)}
+    .result-cell .v.ok{color:var(--ok)}
+    .split-table{width:100%;border-collapse:collapse;font-size:13px;margin:16px 0}
+    .split-table th,.split-table td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
+    .split-table th{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);background:#F8FAFC}
+    .split-table td:last-child,.split-table th:last-child{text-align:right;font-weight:700}
+    .split-table tr.half td{background:var(--primary-light);font-weight:700}
+    .split-table tr.finish td{background:#FFF7ED;font-weight:800;color:var(--primary-dark)}
+    .split-wrap{max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:12px}
+    .split-wrap .split-table{margin:0}
+    .summary-table{width:100%;border-collapse:collapse;font-size:14px}
+    .summary-table td{padding:9px 0;border-bottom:1px solid var(--line)}
+    .summary-table td:first-child{color:var(--muted);font-weight:600;width:52%}
+    .summary-table td:last-child{font-weight:700;text-align:right}
+    .tip-box,.note-box{margin-top:12px;padding:12px;border-radius:10px;font-size:12px;line-height:1.6}
+    .tip-box{background:var(--primary-light);border:1px solid #FDBA74;color:var(--primary-dark)}
+    .note-box{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+    .sidebar{display:flex;flex-direction:column;gap:14px}
+    .sidebar-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+    .sidebar-card h3{font-size:14px;font-weight:800;margin-bottom:10px}
+    .ref-table{width:100%;font-size:12px;border-collapse:collapse}
+    .ref-table td{padding:6px 0;border-bottom:1px dashed var(--line)}
+    .ref-table td:last-child{text-align:right;font-weight:700}
+    .sidebar-list{list-style:none;font-size:12px;color:var(--muted);line-height:1.9}
+    .guide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0}
+    .guide-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+    .guide-card h2{font-size:16px;font-weight:800;margin-bottom:8px}
+    .guide-card p,.guide-card li{font-size:14px;color:var(--muted)}
+    .guide-card ul{padding-left:18px;margin-top:6px}
+    .formula-box{background:#F8FAFC;border:1px solid var(--line);border-radius:10px;padding:14px;font-family:ui-monospace,monospace;font-size:13px;line-height:1.8;margin:12px 0;color:var(--ink)}
+    details{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+    details[open]{border-color:var(--primary)}
+    summary{padding:13px 16px;font-weight:700;cursor:pointer;list-style:none;font-size:14px}
+    summary::-webkit-details-marker{display:none}
+    details p{padding:0 16px 14px;font-size:13px;color:var(--muted);line-height:1.65}
+    footer{text-align:center;padding:24px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);background:#fff;margin-top:20px}
+    .ad-top,.ad-sidebar,.ad-bottom,.ad-mid{display:flex;justify-content:center;align-items:center;margin:16px auto;overflow:hidden;min-height:50px}
+    .ad-top{width:100%;max-width:728px;min-height:90px}
+    .ad-mid{width:100%;max-width:728px;min-height:90px;margin:8px auto 24px}
+    .ad-sidebar{width:100%;max-width:300px;min-height:250px;border-radius:var(--radius)}
+    .ad-bottom{width:100%;max-width:320px;min-height:50px}
+    .sec-title{font-size:18px;font-weight:800;margin-bottom:12px;color:var(--ink)}
+    @media(max-width:860px){
+      .layout,.form-grid,.form-grid.two,.result-grid,.guide-grid,.preview-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container"><a href="#" class="logo">Marathon Pace Calculator</a></div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <span class="hero-badge">26.2 mi · 42.195 km · Race planning</span>
+    <h1>Marathon Pace Calculator</h1>
+    <p>Convert goal finish time to race pace, generate mile or 5K split tables, project half-marathon splits, and plan even or negative splits — inspired by McMillan, Hal Higdon &amp; Runner's World pacing guides.</p>
+    <div class="metrics">
+      <div class="metric-pill"><span>26.2 mi</span> = 42.195 km</div>
+      <div class="metric-pill"><span>Even splits</span> = steady effort</div>
+      <div class="metric-pill"><span>−2%</span> negative split option</div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="ad-top">
+    <script>atOptions={'key':'b31a21d357a574f5abfe948e08497cc3','format':'iframe','height':90,'width':728,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/b31a21d357a574f5abfe948e08497cc3/invoke.js"></script>
+    <script data-cfasync="false" src="https://adsterra-xxx1.js"></script>
+  </div>
+</div>
+
+<div class="container">
+  <div class="layout">
+    <main class="card">
+      <h2>Plan your marathon pace</h2>
+      <p class="sub">Enter a goal finish time or target pace. Get even-pace splits at every mile or 5K, plus half-marathon checkpoint projections.</p>
+
+      <div class="sec-label">Units</div>
+      <div class="unit-row">
+        <button type="button" class="unit-btn active" data-unit="met">Metric (km)</button>
+        <button type="button" class="unit-btn" data-unit="imp">Imperial (mi)</button>
+      </div>
+
+      <div class="sec-label">Calculate from</div>
+      <div class="mode-row">
+        <button type="button" class="mode-btn active" data-mode="time">Goal finish time</button>
+        <button type="button" class="mode-btn" data-mode="pace">Target pace</button>
+      </div>
+
+      <div class="panel show" id="panelTime">
+        <div class="sec-label">Goal finish time</div>
+        <div class="goal-row" id="goalPresets">
+          <button type="button" class="goal-btn" data-h="2" data-m="59" data-s="0">Sub-3:00</button>
+          <button type="button" class="goal-btn" data-h="3" data-m="30" data-s="0">3:30</button>
+          <button type="button" class="goal-btn active" data-h="4" data-m="0" data-s="0">4:00</button>
+          <button type="button" class="goal-btn" data-h="4" data-m="30" data-s="0">4:30</button>
+          <button type="button" class="goal-btn" data-h="5" data-m="0" data-s="0">5:00</button>
+        </div>
+        <div class="form-grid">
+          <div><label for="goalH">Hours</label><input class="input" type="number" id="goalH" value="4" min="2" max="8"></div>
+          <div><label for="goalM">Minutes</label><input class="input" type="number" id="goalM" value="0" min="0" max="59"></div>
+          <div><label for="goalS">Seconds</label><input class="input" type="number" id="goalS" value="0" min="0" max="59"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelPace">
+        <div class="sec-label">Target pace <span id="paceUnitLbl">per km</span></div>
+        <div class="form-grid two">
+          <div><label for="paceMin">Minutes</label><input class="input" type="number" id="paceMin" value="5" min="3" max="15"></div>
+          <div><label for="paceSec">Seconds</label><input class="input" type="number" id="paceSec" value="41" min="0" max="59"></div>
+        </div>
+      </div>
+
+      <div class="sec-label">Split strategy</div>
+      <div class="mode-row" id="splitRow">
+        <button type="button" class="mode-btn active" data-split="even">Even pace</button>
+        <button type="button" class="mode-btn" data-split="neg">Negative split (−2% 1st half)</button>
+      </div>
+
+      <p class="hint">Even pace assumes steady effort throughout. Negative split runs the first half ~2% slower, second half ~2% faster — a common race-day strategy for hitting the wall later.</p>
+
+      <div class="btn-row">
+        <button type="button" class="btn-main" id="btnCalc">Calculate pace</button>
+        <button type="button" class="btn-ghost" id="btnReset">Reset</button>
+      </div>
+
+      <div class="results" id="results"></div>
+
+      <div class="plan-preview" id="planPreview">
+        <h3>Your pace plan preview</h3>
+        <p class="pv-sub">Enter your goal and tap Calculate — you'll get a full breakdown like this:</p>
+        <div class="preview-grid">
+          <div class="preview-cell"><div class="k">Pace</div><div class="v">~5:41 /km</div></div>
+          <div class="preview-cell"><div class="k">Finish</div><div class="v">4:00:00</div></div>
+          <div class="preview-cell"><div class="k">Half</div><div class="v">~1:59:30</div></div>
+        </div>
+        <p class="pv-sub" style="margin:0;text-align:center">Includes mile/5K splits, speed (km/h · mph) &amp; half-marathon checkpoint.</p>
+      </div>
+    </main>
+
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h3>Common marathon times</h3>
+        <table class="ref-table">
+          <tr><td>Sub-3:00</td><td>4:16 /mi</td></tr>
+          <tr><td>3:30:00</td><td>4:58 /mi</td></tr>
+          <tr><td>4:00:00</td><td>5:41 /mi</td></tr>
+          <tr><td>4:30:00</td><td>6:24 /mi</td></tr>
+          <tr><td>5:00:00</td><td>7:06 /mi</td></tr>
+        </table>
+      </div>
+      <div class="sidebar-card">
+        <h3>Quick example</h3>
+        <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:10px">4:00 marathon → 5:41/km · 9:09/mi · half at ~1:59:30.</p>
+        <button type="button" class="btn-ghost" style="width:100%" id="btnExample">Load 4:00 example</button>
+      </div>
+      <div class="sidebar-card">
+        <h3>Pacing tips</h3>
+        <ul class="sidebar-list">
+          <li>· Start 10–15 sec/km slower</li>
+          <li>· Hit half within 30 sec of even</li>
+          <li>· Walk aid stations if needed</li>
+          <li>· Practice race pace in long runs</li>
+        </ul>
+      </div>
+      <div class="ad-sidebar">
+        <script>atOptions={'key':'5b2625d96c11d7b599cea160717bc0f6','format':'iframe','height':250,'width':300,'params':{}};</script>
+        <script src="https://www.highperformanceformat.com/5b2625d96c11d7b599cea160717bc0f6/invoke.js"></script>
+      </div>
+    </aside>
+  </div>
+
+  <section class="guide-grid">
+    <div class="guide-card">
+      <h2>Marathon distance</h2>
+      <p>The official marathon distance is <strong>42.195 km (26.2 miles)</strong>, standardized in 1921. Pace calculators divide total time by this distance to get average speed per km or mile.</p>
+      <div class="formula-box">Pace = Finish Time ÷ Distance<br>4:00:00 ÷ 42.195 km = 5:41/km</div>
+    </div>
+    <div class="guide-card">
+      <h2>Even vs negative splits</h2>
+      <ul>
+        <li><strong>Even pace</strong> — same split every mile/km; simplest for first marathons</li>
+        <li><strong>Negative split</strong> — run second half faster; saves glycogen early</li>
+        <li>Most elites negative split; beginners often positive split from starting too fast</li>
+      </ul>
+    </div>
+    <div class="guide-card">
+      <h2>Using split tables</h2>
+      <ul>
+        <li>Check wrist at each 5K or mile marker</li>
+        <li>Adjust ±5 sec/km for hills or wind</li>
+        <li>Half-marathon split should be ~50% of goal time</li>
+        <li>Bank 15–30 sec buffer for miles 20–26</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="ad-mid">
+    <script data-cfasync="false" src="https://adsterra-xxx2.js"></script>
+  </div>
+
+  <h2 class="sec-title">FAQ</h2>
+  <details>
+    <summary>What pace do I need for a 4-hour marathon?</summary>
+    <p>A 4:00:00 marathon requires an average pace of 5:41 per km (9:09 per mile). Your half-marathon checkpoint should be around 1:59:30. Add 10–15 seconds per km in the first 5K to avoid going out too fast.</p>
+  </details>
+  <details>
+    <summary>How do I convert marathon pace between min/km and min/mile?</summary>
+    <p>Multiply min/km by 1.60934 to get min/mile, or divide min/mile by 1.60934 for min/km. Example: 5:00/km ≈ 8:03/mi. This calculator shows both automatically.</p>
+  </details>
+  <details>
+    <summary>What is a negative split marathon?</summary>
+    <p>A negative split means running the second half faster than the first. Many coaches recommend starting 1–3% slower than goal pace, then accelerating after halfway. This calculator's negative split mode adds ~2% to first-half splits and subtracts ~2% from second-half splits.</p>
+  </details>
+  <details>
+    <summary>How accurate are marathon pace calculators?</summary>
+    <p>Pace math is exact — splits are pure time ÷ distance. Real race day varies with hills, weather, crowding, and fitness. Use splits as a guide; adjust on feel, especially after mile 20 (km 32).</p>
+  </details>
+  <details>
+    <summary>What half-marathon time predicts marathon fitness?</summary>
+    <p>Rule of thumb: double your half-marathon time and add 10–20 minutes for a marathon estimate (e.g. 1:45 half → ~3:40–3:50 marathon). This assumes proper marathon training — not just half-marathon fitness.</p>
+  </details>
+  <details>
+    <summary>When should I start my race-day pace?</summary>
+    <p>Hold back the first 1–2 km (or mile). Most runners who hit the wall started 15–30 sec/km too fast. Aim to reach halfway within 15–30 seconds of even-split projection, then hold or push if you feel strong.</p>
+  </details>
+</div>
+
+<div class="container">
+  <div class="ad-bottom">
+    <script>atOptions={'key':'5a3667e1a909df26029e97d7d01cf2b5','format':'iframe','height':50,'width':320,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/5a3667e1a909df26029e97d7d01cf2b5/invoke.js"></script>
+    <script data-cfasync="false" src="https://adsterra-xxx3.js"></script>
+  </div>
+</div>
+
+<footer>
+  <div class="container">Marathon Pace Calculator — educational tool inspired by McMillan Running &amp; standard 42.195 km race distance. Not medical advice.</div>
+</footer>
+
+<script>
+(function(){
+  var MARATHON_KM=42.195;
+  var MARATHON_MI=26.2187575;
+  var HALF_KM=21.0975;
+  var HALF_MI=13.109375;
+
+  var unit='met',mode='time',splitMode='even';
+
+  function byId(id){return document.getElementById(id);}
+
+  function pad2(n){return (n<10?'0':'')+Math.floor(n);}
+
+  function fmtTime(sec){
+    sec=Math.round(sec);
+    var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
+    return h+':'+pad2(m)+':'+pad2(s);
+  }
+
+  function fmtPace(secPerUnit){
+    if(!isFinite(secPerUnit)||secPerUnit<=0)return '—';
+    var m=Math.floor(secPerUnit/60),s=Math.round(secPerUnit%60);
+    if(s===60){m++;s=0;}
+    return m+':'+pad2(s);
+  }
+
+  function getTotalSec(h,m,s){
+    return (parseInt(h,10)||0)*3600+(parseInt(m,10)||0)*60+(parseInt(s,10)||0);
+  }
+
+  function getPaceSec(min,sec){
+    return (parseInt(min,10)||0)*60+(parseInt(sec,10)||0);
+  }
+
+  document.querySelectorAll('.unit-btn').forEach(function(b){
+    b.onclick=function(){
+      unit=b.dataset.unit;
+      document.querySelectorAll('.unit-btn').forEach(function(x){x.classList.toggle('active',x.dataset.unit===unit);});
+      byId('paceUnitLbl').textContent=unit==='met'?'per km':'per mile';
+    };
+  });
+
+  document.querySelectorAll('.mode-btn[data-mode]').forEach(function(b){
+    b.onclick=function(){
+      mode=b.dataset.mode;
+      document.querySelectorAll('.mode-btn[data-mode]').forEach(function(x){x.classList.toggle('active',x.dataset.mode===mode);});
+      byId('panelTime').classList.toggle('show',mode==='time');
+      byId('panelPace').classList.toggle('show',mode==='pace');
+    };
+  });
+
+  document.querySelectorAll('#splitRow .mode-btn').forEach(function(b){
+    b.onclick=function(){
+      splitMode=b.dataset.split;
+      document.querySelectorAll('#splitRow .mode-btn').forEach(function(x){x.classList.toggle('active',x.dataset.split===splitMode);});
+    };
+  });
+
+  document.querySelectorAll('#goalPresets .goal-btn').forEach(function(b){
+    b.onclick=function(){
+      byId('goalH').value=b.dataset.h;
+      byId('goalM').value=b.dataset.m;
+      byId('goalS').value=b.dataset.s;
+      document.querySelectorAll('#goalPresets .goal-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+    };
+  });
+
+  function cumTimeAt(distMarker,totalSec,fullDist,isKm){
+    var halfDist=isKm?HALF_KM:HALF_MI;
+    if(splitMode==='even')return totalSec*(distMarker/fullDist);
+    if(distMarker<=halfDist)return totalSec*0.51*(distMarker/halfDist);
+    return totalSec*0.51+totalSec*0.49*((distMarker-halfDist)/(fullDist-halfDist));
+  }
+
+  function buildSplits(totalSec,dist,intervals,isKm){
+    var rows=[],prevDist=0,prevCum=0;
+    for(var i=0;i<intervals.length;i++){
+      var d=intervals[i],segDist=d-prevDist;
+      var cum=cumTimeAt(d,totalSec,dist,isKm);
+      var segPace=(cum-prevCum)/segDist;
+      var label=isKm?(d===MARATHON_KM?'Finish (42.195 km)':d+' km'):(d>=MARATHON_MI-0.01?'Finish (26.2 mi)':Math.round(d)+' mi');
+      var cls='';
+      if(isKm?Math.abs(d-HALF_KM)<0.01:Math.abs(d-HALF_MI)<0.01)cls=' class="half"';
+      if(i===intervals.length-1)cls=' class="finish"';
+      rows.push('<tr'+cls+'><td>'+label+'</td><td>'+fmtPace(segPace)+'</td><td>'+fmtTime(cum)+'</td></tr>');
+      prevDist=d;prevCum=cum;
+    }
+    return rows.join('');
+  }
+
+  function calculate(scroll){
+    var totalSec,paceKm,paceMi;
+
+    if(mode==='time'){
+      totalSec=getTotalSec(byId('goalH').value,byId('goalM').value,byId('goalS').value);
+      if(totalSec<7200||totalSec>28800){alert('Enter finish time between 2:00:00 and 8:00:00.');return;}
+      paceKm=totalSec/MARATHON_KM;
+      paceMi=totalSec/MARATHON_MI;
+    }else{
+      var pSec=getPaceSec(byId('paceMin').value,byId('paceSec').value);
+      if(unit==='met'){
+        paceKm=pSec;
+        paceMi=pSec*1.60934;
+        totalSec=paceKm*MARATHON_KM;
+      }else{
+        paceMi=pSec;
+        paceKm=pSec/1.60934;
+        totalSec=paceMi*MARATHON_MI;
+      }
+      if(pSec<180||pSec>900){alert('Enter pace between 3:00 and 15:00 per unit.');return;}
+    }
+
+    var speedKmh=3600/paceKm;
+    var speedMph=3600/paceMi;
+    var halfSec=totalSec/2;
+    var unitLbl=unit==='met'?'km':'mi';
+    var heroPace=unit==='met'?fmtPace(paceKm)+' /km':fmtPace(paceMi)+' /mi';
+    var altPace=unit==='met'?fmtPace(paceMi)+' /mi':fmtPace(paceKm)+' /km';
+
+    var kmIntervals=[5,10,15,20,HALF_KM,25,30,35,40,MARATHON_KM];
+    var miIntervals=[];
+    for(var m=1;m<=13;m++)miIntervals.push(m);
+    miIntervals.push(HALF_MI);
+    for(var m=14;m<=26;m++)miIntervals.push(m);
+    miIntervals.push(MARATHON_MI);
+
+    var splitHtml=unit==='met'?buildSplits(totalSec,MARATHON_KM,kmIntervals,true):buildSplits(totalSec,MARATHON_MI,miIntervals,false);
+    var splitTitle=unit==='met'?'5K split table (even pace)':'Mile split table (even pace)';
+    if(splitMode==='neg')splitTitle=splitTitle.replace('even pace','negative split');
+
+    byId('results').innerHTML=
+      '<div class="result-hero"><div class="lbl">Target marathon pace</div><div class="val">'+heroPace+'</div><div class="sub">Finish: '+fmtTime(totalSec)+' · '+altPace+'</div></div>'+
+      '<div class="result-grid">'+
+        '<div class="result-cell"><div class="k">Finish time</div><div class="v">'+fmtTime(totalSec)+'</div></div>'+
+        '<div class="result-cell"><div class="k">Half checkpoint</div><div class="v ok">'+fmtTime(halfSec)+'</div></div>'+
+        '<div class="result-cell"><div class="k">Speed</div><div class="v">'+speedKmh.toFixed(1)+' km/h</div></div>'+
+        '<div class="result-cell"><div class="k">Pace /km</div><div class="v">'+fmtPace(paceKm)+'</div></div>'+
+        '<div class="result-cell"><div class="k">Pace /mi</div><div class="v">'+fmtPace(paceMi)+'</div></div>'+
+        '<div class="result-cell"><div class="k">Speed mph</div><div class="v">'+speedMph.toFixed(1)+'</div></div>'+
+      '</div>'+
+      '<h3 style="font-size:14px;font-weight:800;margin:16px 0 8px">'+splitTitle+'</h3>'+
+      '<div class="split-wrap"><table class="split-table"><thead><tr><th>Marker</th><th>Segment pace</th><th>Cumulative</th></tr></thead><tbody>'+splitHtml+'</tbody></table></div>'+
+      '<table class="summary-table">'+
+        '<tr><td>Distance</td><td>42.195 km · 26.2 mi</td></tr>'+
+        '<tr><td>Input mode</td><td>'+(mode==='time'?'Goal finish time':'Target pace')+'</td></tr>'+
+        '<tr><td>Split strategy</td><td>'+(splitMode==='even'?'Even pace':'Negative split (−2% / +2%)')+'</td></tr>'+
+        '<tr><td>10K checkpoint</td><td>'+fmtTime(cumTimeAt(10,totalSec,MARATHON_KM,true))+'</td></tr>'+
+        '<tr><td>20 mi checkpoint</td><td>'+fmtTime(cumTimeAt(20,totalSec,MARATHON_MI,false))+'</td></tr>'+
+      '</table>'+
+      '<p class="tip-box"><strong>Tip:</strong> Start 10–15 sec/'+unitLbl+' slower than '+fmtPace(unit==='met'?paceKm:paceMi)+'. Hit half at '+fmtTime(halfSec)+' (±30 sec). Save energy for the final 10K.</p>'+
+      '<p class="note-box"><strong>Note:</strong> Splits assume flat, even effort. Adjust for hills, heat, and crowding. Practice this pace in at least one 20–22 mi long run before race day.</p>'+
+      '<div class="btn-row" style="margin-top:14px"><button type="button" class="btn-ghost" id="btnCopy">Copy results</button></div>';
+
+    byId('results').classList.add('show');
+    byId('planPreview').classList.add('hide');
+    window._last=byId('results').innerText;
+    byId('btnCopy').onclick=function(){
+      navigator.clipboard.writeText(window._last.replace(/\s+/g,' ').trim()).then(function(){alert('Copied!');});
+    };
+    if(scroll)byId('results').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function resetForm(){
+    unit='met';mode='time';splitMode='even';
+    document.querySelectorAll('.unit-btn').forEach(function(x){x.classList.toggle('active',x.dataset.unit==='met');});
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(function(x){x.classList.toggle('active',x.dataset.mode==='time');});
+    document.querySelectorAll('#splitRow .mode-btn').forEach(function(x){x.classList.toggle('active',x.dataset.split==='even');});
+    document.querySelectorAll('#goalPresets .goal-btn').forEach(function(x){x.classList.toggle('active',x.dataset.h==='4');});
+    byId('panelTime').classList.add('show');byId('panelPace').classList.remove('show');
+    byId('goalH').value='4';byId('goalM').value='0';byId('goalS').value='0';
+    byId('paceMin').value='5';byId('paceSec').value='41';
+    byId('paceUnitLbl').textContent='per km';
+    byId('results').classList.remove('show');byId('results').innerHTML='';
+    byId('planPreview').classList.remove('hide');
+  }
+
+  byId('btnCalc').onclick=function(){calculate(true);};
+  byId('btnReset').onclick=resetForm;
+  byId('btnExample').onclick=function(){
+    resetForm();
+    calculate(true);
+  };
+})();
+</script>
+</body>
+</html>
